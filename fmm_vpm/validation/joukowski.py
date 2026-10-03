@@ -133,8 +133,8 @@ def joukowski_solution(
     z_norm[0] = z_norm[-1] = _normalise(np.array(parameters.z_te), parameters)
 
     return JoukowskiSolution(
-        x=z_norm.real.copy(),
-        y=z_norm.imag.copy(),
+        x=np.real(z_norm).copy(),
+        y=np.imag(z_norm).copy(),
         cp=1.0 - v**2,
         cl=2.0 * parameters.gamma / parameters.chord,
         alpha_deg=float(alpha_deg),
@@ -157,8 +157,8 @@ def joukowski_surface_panel_values(
     z_norm = _normalise(zeta + 1.0 / zeta, parameters)
     velocity = _complex_velocity(zeta, parameters)
     return JoukowskiPanelValues(
-        x=z_norm.real,
-        y=z_norm.imag,
+        x=np.real(z_norm),
+        y=np.imag(z_norm),
         cp=1.0 - np.abs(velocity) ** 2,
     )
 
@@ -189,4 +189,4 @@ def joukowski_velocity(
     if np.any(np.abs(zeta - parameters.zeta0) <= parameters.radius * (1.0 + 1e-10)):
         raise ValueError("points must be strictly outside the Joukowski airfoil")
     velocity = _complex_velocity(zeta, parameters)
-    return np.column_stack((velocity.real, -velocity.imag))
+    return np.column_stack((np.real(velocity), -np.imag(velocity)))
