@@ -27,7 +27,9 @@ def main() -> None:
     speed = np.hypot(velocity[..., 0], velocity[..., 1])
     speed[inside] = np.nan
 
-    figure = make_subplots(rows=1, cols=2, subplot_titles=("Direct VPM velocity", "Surface pressure"))
+    figure = make_subplots(
+        rows=1, cols=2, subplot_titles=("Direct VPM velocity", "Surface pressure")
+    )
     figure.add_trace(
         go.Contour(
             x=x,
@@ -67,10 +69,7 @@ def main() -> None:
     figure.update_xaxes(title_text="x / c", row=1, col=1)
     figure.update_xaxes(title_text="x / c", row=1, col=2)
     figure.update_layout(
-        title=(
-            "NACA 0012 direct vortex-panel solution, α = 4° "
-            f"(CL = {solution.cl_pressure:.4f})"
-        ),
+        title=(f"NACA 0012 direct vortex-panel solution, α = 4° (CL = {solution.cl_pressure:.4f})"),
         template="plotly_white",
     )
     output = "naca0012_direct_vpm.html"
