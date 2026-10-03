@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -37,7 +39,7 @@ def test_integrated_panel_p2m_converges_to_direct_velocity(
     for order in (0, 2, 4, 6, 8):
         moments = panel_moments(geometry.starts, geometry.ends, gamma, center, order)
         errors.append(_relative_error(evaluate_multipole(moments, center, targets), direct))
-    assert all(later < earlier for earlier, later in zip(errors, errors[1:], strict=False))
+    assert all(later < earlier for earlier, later in pairwise(errors))
     assert errors[-1] < 1e-7
 
 
@@ -65,7 +67,7 @@ def test_m2l_then_l2p_converges_to_direct_velocity(
         moments = panel_moments(geometry.starts, geometry.ends, gamma, source_center, order)
         local = multipole_to_local(moments, source_center, target_center, order)
         errors.append(_relative_error(evaluate_local(local, target_center, targets), direct))
-    assert all(later < earlier for earlier, later in zip(errors, errors[1:], strict=False))
+    assert all(later < earlier for earlier, later in pairwise(errors))
     assert errors[-1] < 1e-7
 
 
