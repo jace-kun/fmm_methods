@@ -25,15 +25,15 @@ from fmm_vpm.fmm.interactions import (
 from fmm_vpm.fmm.tree import QuadNode, QuadTree, build_panel_tree, build_tree
 
 __all__ = [
-    "DEFAULT_ORDERS",
     "DEFAULT_LEAF_CAPACITY",
+    "DEFAULT_ORDERS",
     "DEFAULT_THETA",
     "FMMDiagnostics",
     "FMMResult",
     "LeafInteractionLists",
+    "PanelFMM",
     "QuadNode",
     "QuadTree",
-    "PanelFMM",
     "assert_complete_partition",
     "boxes_touch",
     "build_panel_tree",
