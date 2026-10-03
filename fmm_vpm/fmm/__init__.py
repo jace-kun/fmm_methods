@@ -6,6 +6,7 @@ from fmm_vpm.fmm.expansions import (
     translate_local,
     translate_multipole,
 )
+from fmm_vpm.fmm.evaluate import FMMDiagnostics, FMMResult, evaluate_induced_velocity
 from fmm_vpm.fmm.interactions import (
     DEFAULT_ORDERS,
     DEFAULT_THETA,
@@ -20,6 +21,8 @@ from fmm_vpm.fmm.tree import QuadNode, QuadTree, build_panel_tree, build_tree
 __all__ = [
     "DEFAULT_ORDERS",
     "DEFAULT_THETA",
+    "FMMDiagnostics",
+    "FMMResult",
     "LeafInteractionLists",
     "QuadNode",
     "QuadTree",
@@ -28,6 +31,7 @@ __all__ = [
     "build_panel_tree",
     "build_tree",
     "evaluate_local",
+    "evaluate_induced_velocity",
     "evaluate_multipole",
     "leaf_interaction_lists",
     "multipole_to_local",
