@@ -6,19 +6,24 @@ This is **not** a git fork of [JoshTheEngineer/Panel_Methods](https://github.com
 
 ## Setup
 
-Requires [uv](https://github.com/astral-sh/uv) and (for validation) [XFOIL 6.99](https://web.mit.edu/drela/Public/web/xfoil/) on `PATH` (on this Mac: `brew install liuyanwpuuci/aerospace/xfoil`).
+Requires [uv](https://github.com/astral-sh/uv) and, for validation, [XFOIL 6.99](https://web.mit.edu/drela/Public/web/xfoil/) on `PATH` (on this Mac: `brew install liuyanwpuuci/aerospace/xfoil`; not in core Homebrew).
 
 ```bash
 uv sync --all-groups
-uv run pytest
+uv run pytest                   # full suite, includes the XFOIL gate
+uv run pytest -m "not xfoil"    # without a local XFOIL binary
 ```
 
-Headless XFOIL for the validation suite:
+XFOIL tests fail (they do not skip) when the binary is missing. The runner sets `XFOIL_HEADLESS=1` itself and runs XFOIL in a temp directory. Set `XFOIL_BIN` to use a binary that is not on `PATH`.
 
-```bash
-XFOIL_HEADLESS=1 uv run pytest
-```
+See [docs/xfoil-gate.md](docs/xfoil-gate.md) for what XFOIL is trusted for and the measured tolerances.
+
+## Layout
+
+- `fmm_vpm/` — import package (geometry, vpm, kernels, fmm, `io_xfoil`, `validation`, viz)
+- `tests/` — analytic, fmm, regression (XFOIL gate), bench
+- `scripts/` — airfoil fetch, XFOIL golden regeneration
 
 ## Status
 
-Skeleton only (Checkpoint 0 → Phase 1). Direct VPM + XFOIL surface gates come next; FMM after that.
+XFOIL validation gate is in place (Joukowski exact oracle, runner, goldens). Direct VPM is next; FMM after that.
