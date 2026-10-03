@@ -68,12 +68,9 @@ def main() -> None:
     figure.update_yaxes(autorange="reversed", title_text="Cp", row=1, col=2)
     figure.update_xaxes(title_text="x / c", row=1, col=1)
     figure.update_xaxes(title_text="x / c", row=1, col=2)
-    figure.update_layout(
-        title=(
-            f"NACA 0012 direct vortex-panel solution, alpha = 4 deg (CL = {solution.cl_pressure:.4f})"
-        ),
-        template="plotly_white",
-    )
+    title = "NACA 0012 direct vortex-panel solution, alpha = 4 deg "
+    title += f"(CL = {solution.cl_pressure:.4f})"
+    figure.update_layout(title=title, template="plotly_white")
     output = "naca0012_direct_vpm.html"
     figure.write_html(output, include_plotlyjs="cdn")
     print(f"Wrote {output}; CL = {solution.cl_pressure:.5f}")
