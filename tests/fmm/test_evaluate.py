@@ -56,6 +56,21 @@ def test_fmm_uses_both_m2l_and_near_direct_work(
     assert result.diagnostics.near_panel_target_count > 0
 
 
+def test_theta_tradeoff_is_visible_without_losing_accuracy(
+    solved_airfoil: tuple[PanelGeometry, np.ndarray],
+) -> None:
+    geometry, gamma = solved_airfoil
+    points = _targets(geometry)
+    direct = velocity(points, geometry, gamma)
+    tight = evaluate_induced_velocity(points, geometry, gamma, order=8, theta=0.35)
+    permissive = evaluate_induced_velocity(points, geometry, gamma, order=8, theta=0.5)
+    assert (
+        tight.diagnostics.near_panel_target_count > permissive.diagnostics.near_panel_target_count
+    )
+    assert _relative_error(tight.velocity, direct) < _relative_error(permissive.velocity, direct)
+    assert _relative_error(tight.velocity, direct) < 1e-6
+
+
 def test_fmm_is_accurate_near_the_body_with_direct_p2p(
     solved_airfoil: tuple[PanelGeometry, np.ndarray],
 ) -> None:
