@@ -1,7 +1,3 @@
-"""Plot airfoil streamlines (filled in after direct VPM lands)."""
-
-
-def main() -> None:
 """Solve NACA 0012 directly and write an interactive Plotly flow-field HTML file.
 
 Run with:
@@ -80,10 +76,6 @@ def main() -> None:
     output = "naca0012_direct_vpm.html"
     figure.write_html(output, include_plotlyjs="cdn")
     print(f"Wrote {output}; CL = {solution.cl_pressure:.5f}")
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":
