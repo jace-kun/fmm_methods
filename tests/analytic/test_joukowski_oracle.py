@@ -48,7 +48,7 @@ def test_rejects_too_few_nodes() -> None:
 
 
 def test_exterior_velocity_has_the_correct_far_field_direction() -> None:
-    velocity = joukowski_velocity(np.array((100.0, 100.0)), alpha_deg=4.0)
+    velocity = joukowski_velocity(np.array((1000.0, 1000.0)), alpha_deg=4.0)
     np.testing.assert_allclose(
         velocity[0],
         np.array((np.cos(np.deg2rad(4.0)), np.sin(np.deg2rad(4.0)))),
