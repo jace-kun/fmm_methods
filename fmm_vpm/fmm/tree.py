@@ -15,6 +15,7 @@ class QuadNode:
     id: int
     center: np.ndarray
     half_width: float
+    support_radius: float
     depth: int
     source_indices: np.ndarray
     children: tuple[int, ...]
@@ -29,6 +30,7 @@ class QuadTree:
     """An array-backed adaptive tree; children always have stable IDs."""
 
     points: np.ndarray
+    support_radii: np.ndarray
     nodes: tuple[QuadNode, ...]
 
     @property
@@ -44,6 +46,7 @@ class QuadTree:
 class _MutableNode:
     center: np.ndarray
     half_width: float
+    support_radius: float
     depth: int
     indices: np.ndarray
     children: list[int]
@@ -52,6 +55,7 @@ class _MutableNode:
 def build_tree(
     points: np.ndarray,
     *,
+    support_radii: np.ndarray | None = None,
     leaf_capacity: int = 16,
     max_depth: int = 30,
 ) -> QuadTree:
@@ -61,6 +65,11 @@ def build_tree(
         raise ValueError("points must have shape (n, 2) with n > 0")
     if not np.isfinite(points).all():
         raise ValueError("points must be finite")
+    if support_radii is None:
+        support_radii = np.zeros(points.shape[0])
+    support_radii = np.asarray(support_radii, dtype=float)
+    if support_radii.shape != (points.shape[0],) or np.any(support_radii < 0):
+        raise ValueError("support_radii must be a non-negative value per point")
     if leaf_capacity < 1:
         raise ValueError("leaf_capacity must be positive")
     if max_depth < 0:
@@ -74,10 +83,16 @@ def build_tree(
     # maximum edge a deterministic child assignment.
     half_width = max(half_width * (1.0 + 1e-12), 1e-12)
 
+    def support_radius(indices: np.ndarray, node_center: np.ndarray) -> float:
+        return float(
+            np.max(np.linalg.norm(points[indices] - node_center, axis=1) + support_radii[indices])
+        )
+
     mutable: list[_MutableNode] = [
         _MutableNode(
             center=center,
             half_width=half_width,
+            support_radius=support_radius(np.arange(points.shape[0]), center),
             depth=0,
             indices=np.arange(points.shape[0], dtype=int),
             children=[],
@@ -109,6 +124,7 @@ def build_tree(
                 _MutableNode(
                     center=node_center + child_half * offset,
                     half_width=child_half,
+                    support_radius=support_radius(child_indices, node_center + child_half * offset),
                     depth=depth + 1,
                     indices=child_indices,
                     children=[],
@@ -127,10 +143,39 @@ def build_tree(
             id=node_id,
             center=node.center,
             half_width=node.half_width,
+            support_radius=node.support_radius,
             depth=node.depth,
             source_indices=node.indices,
             children=tuple(node.children),
         )
         for node_id, node in enumerate(mutable)
     )
-    return QuadTree(points=points, nodes=nodes)
+    return QuadTree(points=points, support_radii=support_radii, nodes=nodes)
+
+
+def build_panel_tree(
+    starts: np.ndarray,
+    ends: np.ndarray,
+    *,
+    leaf_capacity: int = 16,
+    max_depth: int = 30,
+) -> QuadTree:
+    """Build a source tree that conservatively bounds each full line panel.
+
+    A panel is assigned by its midpoint, but its half-length is included in
+    the node's support radius.  Thus no M2L decision can treat a panel as a
+    point located only at its midpoint, even when the panel crosses a child
+    box boundary.
+    """
+    starts = np.asarray(starts, dtype=float)
+    ends = np.asarray(ends, dtype=float)
+    if starts.shape != ends.shape or starts.ndim != 2 or starts.shape[1] != 2:
+        raise ValueError("starts and ends must have shape (n, 2)")
+    centers = 0.5 * (starts + ends)
+    radii = 0.5 * np.linalg.norm(ends - starts, axis=1)
+    return build_tree(
+        centers,
+        support_radii=radii,
+        leaf_capacity=leaf_capacity,
+        max_depth=max_depth,
+    )

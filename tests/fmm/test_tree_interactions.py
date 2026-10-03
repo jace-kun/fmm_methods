@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from fmm_vpm.fmm import assert_complete_partition, boxes_touch, build_tree, leaf_interaction_lists
+from fmm_vpm.fmm import (
+    DEFAULT_THETA,
+    assert_complete_partition,
+    build_panel_tree,
+    build_tree,
+    leaf_interaction_lists,
+    well_separated,
+)
 
 
 def test_iterative_tree_assigns_every_point_to_one_leaf() -> None:
@@ -51,8 +58,34 @@ def test_leaf_pairs_are_a_complete_near_far_partition() -> None:
     assert_complete_partition(tree, lists)
     for item in lists:
         target = tree.nodes[item.target_leaf_id]
-        assert all(boxes_touch(target, tree.nodes[source_id]) for source_id in item.near_leaf_ids)
         assert all(
-            not boxes_touch(target, tree.nodes[source_id])
-            for source_id in item.interaction_leaf_ids
+            not well_separated(target, tree.nodes[source_id]) for source_id in item.near_leaf_ids
         )
+        assert all(
+            well_separated(target, tree.nodes[source_id]) for source_id in item.interaction_leaf_ids
+        )
+
+
+def test_panel_tree_support_radius_contains_panels_that_cross_child_boundaries() -> None:
+    starts = np.array(((-0.8, 0.0), (0.1, 0.1), (0.15, -0.1)))
+    ends = np.array(((0.8, 0.0), (0.2, 0.1), (0.25, -0.1)))
+    tree = build_panel_tree(starts, ends, leaf_capacity=1)
+    long_panel_leaf = next(leaf for leaf in tree.leaves if 0 in leaf.source_indices)
+    # The long panel's midpoint is at the root center, but its full support
+    # reaches far outside any child box assigned by that midpoint.
+    assert long_panel_leaf.support_radius >= 0.8
+
+
+def test_mac_uses_full_panel_support_not_panel_midpoints() -> None:
+    starts = np.array(((-0.8, 0.0),))
+    ends = np.array(((0.8, 0.0),))
+    source_tree = build_panel_tree(starts, ends, leaf_capacity=1)
+    target_tree = build_tree(np.array(((1.0, 0.0),)), leaf_capacity=1)
+    source = source_tree.root
+    target = target_tree.root
+    # Midpoints are one unit apart, but source support is 0.8; a source
+    # point approximation would incorrectly M2L this pair at theta=0.5.
+    assert not well_separated(target, source, theta=DEFAULT_THETA)
+    lists = leaf_interaction_lists(target_tree, source_tree, theta=DEFAULT_THETA)
+    assert lists[0].near_leaf_ids == (source.id,)
+    assert lists[0].interaction_leaf_ids == ()
