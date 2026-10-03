@@ -66,7 +66,9 @@ def _write_coords(path: Path, x: np.ndarray, y: np.ndarray) -> None:
     path.write_text(f"airfoil\n{rows}\n")
 
 
-def _derive_cl(alpha_deg: float, x: np.ndarray, y: np.ndarray, ue: np.ndarray, cp: np.ndarray) -> tuple[float, float, float]:
+def _derive_cl(
+    alpha_deg: float, x: np.ndarray, y: np.ndarray, ue: np.ndarray, cp: np.ndarray
+) -> tuple[float, float, float]:
     chord = float(x.max() - x.min())
     dx, dy = np.diff(x), np.diff(y)
     ds = np.hypot(dx, dy)
@@ -126,7 +128,9 @@ def run_inviscid(
         dump_file, cp_file = work / "dump.txt", work / "cp.txt"
         if proc.returncode != 0 or not dump_file.exists() or not cp_file.exists():
             tail = "\n".join(proc.stdout.strip().splitlines()[-8:])
-            raise XfoilError(f"XFOIL failed (exit {proc.returncode}):\n{tail}\n{proc.stderr.strip()[-300:]}")
+            raise XfoilError(
+                f"XFOIL failed (exit {proc.returncode}):\n{tail}\n{proc.stderr.strip()[-300:]}"
+            )
 
         dump = np.loadtxt(dump_file, comments="#", usecols=(0, 1, 2, 3))
         cp_table = np.loadtxt(cp_file, comments="#")

@@ -70,7 +70,11 @@ def joukowski_solution(
     def speed(theta: np.ndarray) -> np.ndarray:
         zeta = surface(theta)
         zp = zeta - zeta0
-        dw = np.exp(-1j * alpha_z) - radius**2 * np.exp(1j * alpha_z) / zp**2 + 1j * gamma_r / (2.0 * np.pi * zp)
+        dw = (
+            np.exp(-1j * alpha_z)
+            - radius**2 * np.exp(1j * alpha_z) / zp**2
+            + 1j * gamma_r / (2.0 * np.pi * zp)
+        )
         return np.abs(dw) / np.abs(1.0 - 1.0 / zeta**2)
 
     t = np.linspace(0.0, 2.0 * np.pi, n_nodes)
@@ -84,7 +88,9 @@ def joukowski_solution(
     interior = slice(1, n_nodes - 1)
     v[interior] = speed(theta[interior])
     h = 1e-6
-    v_te = 0.5 * (speed(np.array([theta_te + h]))[0] + speed(np.array([theta_te + 2.0 * np.pi - h]))[0])
+    v_te = 0.5 * (
+        speed(np.array([theta_te + h]))[0] + speed(np.array([theta_te + 2.0 * np.pi - h]))[0]
+    )
     v[0] = v[-1] = v_te
     z_norm[0] = z_norm[-1] = (z_te - z_le) * np.exp(-1j * phi) / chord
 

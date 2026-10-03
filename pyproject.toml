@@ -3,16 +3,22 @@ name = "fmm_methods"
 version = "0.1.0"
 description = "FMM-accelerated 2D vortex panel method (clean Python rewrite)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
-  "numpy>=2.0",
-  "scipy>=1.11",
-  "matplotlib>=3.8",
+  "numpy>=2.5",
+  "scipy>=1.18",
+  "plotly>=7.1",
 ]
 
 [dependency-groups]
 dev = [
   "pytest>=8.0",
+  "ruff>=0.16",
+  "pyright>=1.1.414",
+]
+# Phase 4 benchmark reference only; never imported by the solver itself.
+bench = [
+  "pyfmmlib>=2026.1",
 ]
 
 [build-system]
@@ -28,3 +34,33 @@ addopts = "--strict-markers"
 markers = [
   "xfoil: needs the XFOIL binary; required on the dev machine (fails, never skips, if missing). Exclude with -m 'not xfoil'.",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["data"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # isort
+  "UP",       # pyupgrade
+  "B",        # bugbear
+  "SIM",      # simplify
+  "NPY",      # numpy-specific deprecations
+  "RUF",      # ruff-specific
+]
+ignore = [
+  "RUF002", "RUF003",  # math notation in docstrings/comments (e.g. Γ, ×)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fmm_vpm"]
+
+[tool.pyright]
+include = ["fmm_vpm", "tests", "scripts", "examples"]
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
