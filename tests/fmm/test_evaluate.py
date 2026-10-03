@@ -7,7 +7,7 @@ from itertools import pairwise
 import numpy as np
 import pytest
 
-from fmm_vpm.fmm import evaluate_induced_velocity
+from fmm_vpm.fmm import PanelFMM, evaluate_induced_velocity
 from fmm_vpm.geometry import PanelGeometry, contains_points, naca4
 from fmm_vpm.kernels import velocity
 from fmm_vpm.vpm import solve
@@ -82,4 +82,41 @@ def test_fmm_is_accurate_near_the_body_with_direct_p2p(
     )
     direct = velocity(points, geometry, gamma)
     fmm = evaluate_induced_velocity(points, geometry, gamma, order=12, theta=0.35)
+    assert _relative_error(fmm.velocity, direct) < 2e-6
+
+
+def test_reusable_source_matches_one_shot_evaluation(
+    solved_airfoil: tuple[PanelGeometry, np.ndarray],
+) -> None:
+    geometry, gamma = solved_airfoil
+    points = _targets(geometry)
+    evaluator = PanelFMM(geometry, gamma, order=10, theta=0.35)
+    reusable = evaluator.evaluate(points).velocity
+    one_shot = evaluate_induced_velocity(points, geometry, gamma, order=10, theta=0.35).velocity
+    np.testing.assert_allclose(reusable, one_shot, rtol=0.0, atol=1e-14)
+
+
+def test_fmm_handles_an_unbalanced_target_tree(
+    solved_airfoil: tuple[PanelGeometry, np.ndarray],
+) -> None:
+    geometry, gamma = solved_airfoil
+    rng = np.random.default_rng(13)
+    clustered = np.column_stack(
+        (1.5 + 0.01 * rng.normal(size=300), 0.4 + 0.01 * rng.normal(size=300))
+    )
+    outliers = np.array(((-1.5, -1.0), (2.5, 1.0), (2.0, -1.5)))
+    points = np.vstack((clustered, outliers))
+    direct = velocity(points, geometry, gamma)
+    fmm = PanelFMM(geometry, gamma, order=12, theta=0.35).evaluate(points)
+    assert _relative_error(fmm.velocity, direct) < 1e-6
+
+
+def test_fmm_handles_targets_very_near_panel_endpoints(
+    solved_airfoil: tuple[PanelGeometry, np.ndarray],
+) -> None:
+    geometry, gamma = solved_airfoil
+    panel_ids = np.arange(8, geometry.n_panels - 8, 16)
+    points = geometry.starts[panel_ids] + 1e-6 * geometry.outward_normals[panel_ids]
+    direct = velocity(points, geometry, gamma)
+    fmm = PanelFMM(geometry, gamma, order=12, theta=0.35).evaluate(points)
     assert _relative_error(fmm.velocity, direct) < 2e-6

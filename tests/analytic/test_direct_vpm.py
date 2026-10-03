@@ -49,6 +49,17 @@ def test_direct_velocity_contains_freestream_far_from_airfoil() -> None:
     )
 
 
+def test_fmm_velocity_at_matches_direct_total_velocity() -> None:
+    solution = solve(naca4("0012", n_panels=160), alpha_deg=4.0)
+    points = np.array(((-0.5, -0.4), (-0.5, 0.4), (1.5, 0.3), (1.5, -0.3)))
+    np.testing.assert_allclose(
+        solution.fmm_velocity_at(points, order=12, theta=0.35),
+        solution.velocity_at(points),
+        rtol=2e-6,
+        atol=2e-6,
+    )
+
+
 def test_invalid_svd_cutoff_is_rejected() -> None:
     with pytest.raises(ValueError, match="svd_rcond"):
         solve(naca4("0012"), alpha_deg=0.0, svd_rcond=0.0)

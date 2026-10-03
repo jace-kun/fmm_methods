@@ -34,6 +34,32 @@ class DirectVPMSolution:
         freestream = self.freestream * np.array((np.cos(alpha), np.sin(alpha)))
         return velocity(points, self.geometry, self.gamma) + freestream
 
+    def fmm_velocity_at(
+        self,
+        points: np.ndarray,
+        *,
+        order: int = 10,
+        theta: float = 0.5,
+        leaf_capacity: int = 32,
+    ) -> np.ndarray:
+        """Evaluate total off-body velocity using the panel-aware FMM."""
+        from fmm_vpm.fmm import PanelFMM
+
+        alpha = np.deg2rad(self.alpha_deg)
+        freestream = self.freestream * np.array((np.cos(alpha), np.sin(alpha)))
+        return (
+            PanelFMM(
+                self.geometry,
+                self.gamma,
+                order=order,
+                theta=theta,
+                leaf_capacity=leaf_capacity,
+            )
+            .evaluate(points)
+            .velocity
+            + freestream
+        )
+
 
 def solve(
     geometry: PanelGeometry,

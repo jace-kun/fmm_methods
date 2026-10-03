@@ -15,6 +15,7 @@ uv run pytest -m "not xfoil"    # without a local XFOIL binary (this is what CI 
 uv run ruff check .             # lint (also covers import sorting)
 uv run ruff format .            # formatter (replaces black + isort)
 uv run pyright                  # type check (same engine as Pylance)
+uv run python scripts/benchmark_field.py  # reproducible local timing report
 ```
 
 Plots use [Plotly](https://plotly.com/python/); there is no matplotlib dependency.
@@ -27,8 +28,16 @@ See [docs/xfoil-gate.md](docs/xfoil-gate.md) for what XFOIL is trusted for and t
 
 - `fmm_vpm/` — import package (geometry, vpm, kernels, fmm, `io_xfoil`, `validation`, `bench_ref`, viz)
 - `tests/` — analytic (incl. exact Joukowski oracle checks), fmm, regression (XFOIL gate), bench (`pyfmmlib` reference)
-- `scripts/` — airfoil fetch, XFOIL golden regeneration
+- `scripts/` — airfoil fetch, XFOIL golden regeneration, reproducible field benchmark
 
 ## Status
 
-XFOIL validation gate is in place (Joukowski exact oracle, runner, goldens). Direct VPM is next; FMM after that.
+The direct VPM and panel-aware FMM are complete.  The FMM uses exact integrated
+panel moments for far field, the direct analytic panel kernel near the body, and
+a conservative full-panel support-radius MAC.  `PanelFMM` reuses source-tree
+setup across target batches; `DirectVPMSolution.fmm_velocity_at` returns total
+velocity (including freestream).
+
+The local benchmark reports direct-panel and FMM timings separately from the
+`pyfmmlib` point-vortex reference.  The latter is never treated as an accuracy
+oracle for integrated vortex panels.
