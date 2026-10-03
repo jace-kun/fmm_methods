@@ -36,7 +36,7 @@ def test_integrated_panel_p2m_converges_to_direct_velocity(
     targets = np.array(((2.5, -0.2), (2.8, 0.5), (3.1, -0.4)))
     direct = velocity(targets, geometry, gamma)
     errors = []
-    for order in (0, 2, 4, 6, 8):
+    for order in (0, 2, 4, 6, 8, 10, 12):
         moments = panel_moments(geometry.starts, geometry.ends, gamma, center, order)
         errors.append(_relative_error(evaluate_multipole(moments, center, targets), direct))
     assert all(later < earlier for earlier, later in pairwise(errors))
@@ -65,7 +65,7 @@ def test_m2l_then_l2p_converges_to_direct_velocity(
     targets = np.array(((2.35, 0.05), (2.6, -0.05), (2.7, 0.25)))
     direct = velocity(targets, geometry, gamma)
     errors = []
-    for order in (2, 4, 6, 8):
+    for order in (2, 4, 6, 8, 10, 12, 14):
         moments = panel_moments(geometry.starts, geometry.ends, gamma, source_center, order)
         local = multipole_to_local(moments, source_center, target_center, order)
         errors.append(_relative_error(evaluate_local(local, target_center, targets), direct))
