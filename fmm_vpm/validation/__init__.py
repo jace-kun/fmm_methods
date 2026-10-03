@@ -1,3 +1,15 @@
-from fmm_vpm.validation.joukowski import JoukowskiSolution, joukowski_solution
+from fmm_vpm.validation.joukowski import (
+    JoukowskiPanelValues,
+    JoukowskiSolution,
+    joukowski_solution,
+    joukowski_surface_panel_values,
+    joukowski_velocity,
+)
 
-__all__ = ["JoukowskiSolution", "joukowski_solution"]
+__all__ = [
+    "JoukowskiPanelValues",
+    "JoukowskiSolution",
+    "joukowski_solution",
+    "joukowski_surface_panel_values",
+    "joukowski_velocity",
+]

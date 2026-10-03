@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from fmm_vpm.validation import joukowski_solution
+from fmm_vpm.validation import joukowski_solution, joukowski_velocity
 
 
 @pytest.mark.parametrize("alpha", [-4.0, 0.0, 3.0, 8.0])
@@ -45,3 +45,17 @@ def test_cl_increases_with_alpha_at_roughly_two_pi_slope() -> None:
 def test_rejects_too_few_nodes() -> None:
     with pytest.raises(ValueError, match="n_nodes"):
         joukowski_solution(alpha_deg=0.0, n_nodes=8)
+
+
+def test_exterior_velocity_has_the_correct_far_field_direction() -> None:
+    velocity = joukowski_velocity(np.array((100.0, 100.0)), alpha_deg=4.0)
+    np.testing.assert_allclose(
+        velocity[0],
+        np.array((np.cos(np.deg2rad(4.0)), np.sin(np.deg2rad(4.0)))),
+        atol=2e-4,
+    )
+
+
+def test_exterior_velocity_rejects_body_interior() -> None:
+    with pytest.raises(ValueError, match="strictly outside"):
+        joukowski_velocity(np.array((0.5, 0.0)), alpha_deg=0.0)
