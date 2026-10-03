@@ -40,6 +40,15 @@ class QuadTree:
         return tuple(node for node in self.nodes if node.is_leaf)
 
 
+@dataclass
+class _MutableNode:
+    center: np.ndarray
+    half_width: float
+    depth: int
+    indices: np.ndarray
+    children: list[int]
+
+
 def build_tree(
     points: np.ndarray,
     *,
@@ -65,28 +74,25 @@ def build_tree(
     # maximum edge a deterministic child assignment.
     half_width = max(half_width * (1.0 + 1e-12), 1e-12)
 
-    mutable: list[dict[str, object]] = [
-        {
-            "center": center,
-            "half_width": half_width,
-            "depth": 0,
-            "indices": np.arange(points.shape[0], dtype=int),
-            "children": [],
-        }
+    mutable: list[_MutableNode] = [
+        _MutableNode(
+            center=center,
+            half_width=half_width,
+            depth=0,
+            indices=np.arange(points.shape[0], dtype=int),
+            children=[],
+        ),
     ]
     pending = deque([0])
     while pending:
         node_id = pending.popleft()
         node = mutable[node_id]
-        indices = node["indices"]
-        assert isinstance(indices, np.ndarray)
-        depth = node["depth"]
-        assert isinstance(depth, int)
+        indices = node.indices
+        depth = node.depth
         if indices.size <= leaf_capacity or depth >= max_depth:
             continue
-        node_center = node["center"]
-        assert isinstance(node_center, np.ndarray)
-        child_half = float(node["half_width"]) / 2.0
+        node_center = node.center
+        child_half = node.half_width / 2.0
         quadrant = (points[indices, 0] >= node_center[0]).astype(int) + 2 * (
             points[indices, 1] >= node_center[1]
         ).astype(int)
@@ -100,30 +106,30 @@ def build_tree(
             )
             child_ids.append(len(mutable))
             mutable.append(
-                {
-                    "center": node_center + child_half * offset,
-                    "half_width": child_half,
-                    "depth": depth + 1,
-                    "indices": child_indices,
-                    "children": [],
-                },
+                _MutableNode(
+                    center=node_center + child_half * offset,
+                    half_width=child_half,
+                    depth=depth + 1,
+                    indices=child_indices,
+                    children=[],
+                ),
             )
         # Identical coordinates cannot be subdivided meaningfully. Preserve
         # them as an over-capacity leaf instead of creating a unary chain.
-        if len(child_ids) == 1 and mutable[child_ids[0]]["indices"].size == indices.size:
+        if len(child_ids) == 1 and mutable[child_ids[0]].indices.size == indices.size:
             del mutable[child_ids[0] :]
             continue
-        node["children"] = child_ids
+        node.children = child_ids
         pending.extend(child_ids)
 
     nodes = tuple(
         QuadNode(
             id=node_id,
-            center=np.asarray(node["center"], dtype=float),
-            half_width=float(node["half_width"]),
-            depth=int(node["depth"]),
-            source_indices=np.asarray(node["indices"], dtype=int),
-            children=tuple(node["children"]),  # type: ignore[arg-type]
+            center=node.center,
+            half_width=node.half_width,
+            depth=node.depth,
+            source_indices=node.indices,
+            children=tuple(node.children),
         )
         for node_id, node in enumerate(mutable)
     )

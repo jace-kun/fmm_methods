@@ -29,7 +29,7 @@ def _relative_error(actual: np.ndarray, expected: np.ndarray) -> float:
 
 
 def test_integrated_panel_p2m_converges_to_direct_velocity(
-    panel_sources: tuple[object, np.ndarray],
+    panel_sources: tuple[PanelGeometry, np.ndarray],
 ) -> None:
     geometry, gamma = panel_sources
     center = 0.5 + 0.0j
@@ -43,7 +43,9 @@ def test_integrated_panel_p2m_converges_to_direct_velocity(
     assert errors[-1] < 1e-7
 
 
-def test_m2m_matches_direct_integrated_moments(panel_sources: tuple[object, np.ndarray]) -> None:
+def test_m2m_matches_direct_integrated_moments(
+    panel_sources: tuple[PanelGeometry, np.ndarray],
+) -> None:
     geometry, gamma = panel_sources
     child_center = 0.25 + 0.1j
     parent_center = 0.75 - 0.2j
@@ -55,7 +57,7 @@ def test_m2m_matches_direct_integrated_moments(panel_sources: tuple[object, np.n
 
 
 def test_m2l_then_l2p_converges_to_direct_velocity(
-    panel_sources: tuple[object, np.ndarray],
+    panel_sources: tuple[PanelGeometry, np.ndarray],
 ) -> None:
     geometry, gamma = panel_sources
     source_center = 0.5 + 0.0j
