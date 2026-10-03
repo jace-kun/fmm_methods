@@ -19,7 +19,9 @@ def main() -> None:
     solution = solve(geometry, alpha_deg=4.0)
 
     x = np.linspace(-0.5, 1.5, 81)
-    y = np.linspace(-0.6, 0.6, 61)
+    # Offset by a tiny amount so a Cartesian grid never hits a panel endpoint,
+    # where the ideal inviscid kernel is mathematically singular.
+    y = np.linspace(-0.6, 0.6, 61) + 1e-8
     xx, yy = np.meshgrid(x, y)
     points = np.column_stack((xx.ravel(), yy.ravel()))
     inside = contains_points(points, geometry).reshape(xx.shape)
