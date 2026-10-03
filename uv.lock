@@ -193,7 +193,7 @@ wheels = [
 ]
 
 [[package]]
-name = "fmm-vpm"
+name = "fmm-methods"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

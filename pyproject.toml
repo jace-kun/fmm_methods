@@ -1,5 +1,5 @@
 [project]
-name = "fmm-vpm"
+name = "fmm_methods"
 version = "0.1.0"
 description = "FMM-accelerated 2D vortex panel method (clean Python rewrite)"
 readme = "README.md"
