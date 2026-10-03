@@ -24,3 +24,7 @@ packages = ["fmm_vpm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+  "xfoil: needs the XFOIL binary; required on the dev machine (fails, never skips, if missing). Exclude with -m 'not xfoil'.",
+]
