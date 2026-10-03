@@ -1,4 +1,10 @@
-from fmm_vpm.fmm.evaluate import FMMDiagnostics, FMMResult, evaluate_induced_velocity
+from fmm_vpm.fmm.evaluate import (
+    DEFAULT_LEAF_CAPACITY,
+    FMMDiagnostics,
+    FMMResult,
+    PanelFMM,
+    evaluate_induced_velocity,
+)
 from fmm_vpm.fmm.expansions import (
     evaluate_local,
     evaluate_multipole,
@@ -20,12 +26,14 @@ from fmm_vpm.fmm.tree import QuadNode, QuadTree, build_panel_tree, build_tree
 
 __all__ = [
     "DEFAULT_ORDERS",
+    "DEFAULT_LEAF_CAPACITY",
     "DEFAULT_THETA",
     "FMMDiagnostics",
     "FMMResult",
     "LeafInteractionLists",
     "QuadNode",
     "QuadTree",
+    "PanelFMM",
     "assert_complete_partition",
     "boxes_touch",
     "build_panel_tree",

@@ -19,6 +19,8 @@ from fmm_vpm.fmm.tree import QuadTree, build_panel_tree, build_tree
 from fmm_vpm.geometry import PanelGeometry
 from fmm_vpm.kernels import velocity_from_segments
 
+DEFAULT_LEAF_CAPACITY = 32
+
 
 @dataclass(frozen=True)
 class FMMDiagnostics:
@@ -128,6 +130,103 @@ def _downward_locals(tree: QuadTree, locals_by_node: list[np.ndarray]) -> None:
             )
 
 
+class PanelFMM:
+    """Reusable panel-aware FMM source representation.
+
+    Build this once when evaluating the same panel strengths at multiple target
+    batches.  The source tree and its upward multipole pass are then reused.
+    """
+
+    def __init__(
+        self,
+        geometry: PanelGeometry,
+        gamma: np.ndarray,
+        *,
+        order: int = 10,
+        theta: float = DEFAULT_THETA,
+        leaf_capacity: int = DEFAULT_LEAF_CAPACITY,
+    ) -> None:
+        gamma = np.asarray(gamma, dtype=float)
+        if gamma.shape != (geometry.n_panels,):
+            raise ValueError("gamma must have one value per panel")
+        if not np.isfinite(gamma).all():
+            raise ValueError("gamma must be finite")
+        if order < 1:
+            raise ValueError("order must be at least one")
+        if leaf_capacity < 1:
+            raise ValueError("leaf_capacity must be positive")
+
+        self.geometry = geometry
+        self.gamma = gamma
+        self.order = order
+        self.theta = theta
+        self.leaf_capacity = leaf_capacity
+        self.source_tree = build_panel_tree(
+            geometry.starts,
+            geometry.ends,
+            leaf_capacity=leaf_capacity,
+        )
+        self.source_moments = _upward_moments(self.source_tree, geometry, gamma, order)
+
+    def evaluate(self, points: np.ndarray) -> FMMResult:
+        """Evaluate induced velocity at target points, excluding freestream."""
+        points = np.asarray(points, dtype=float)
+        if points.ndim == 1:
+            points = points[None, :]
+        if points.ndim != 2 or points.shape[1] != 2:
+            raise ValueError("points must have shape (n, 2)")
+        if not np.isfinite(points).all():
+            raise ValueError("points must be finite")
+
+        target_tree = build_tree(points, leaf_capacity=self.leaf_capacity)
+        locals_by_node, near_by_target_leaf, m2l_pair_count = _partition_dual_tree(
+            target_tree,
+            self.source_tree,
+            self.source_moments,
+            order=self.order,
+            theta=self.theta,
+        )
+        _downward_locals(target_tree, locals_by_node)
+
+        result = np.zeros_like(points)
+        near_leaf_pair_count = 0
+        near_panel_target_count = 0
+        for target_leaf in target_tree.leaves:
+            target_idx = target_leaf.source_indices
+            target_points = points[target_idx]
+            result[target_idx] += evaluate_local(
+                locals_by_node[target_leaf.id],
+                _as_complex(target_leaf.center),
+                target_points,
+            )
+            near_ids = near_by_target_leaf[target_leaf.id]
+            near_leaf_pair_count += len(near_ids)
+            if near_ids:
+                source_idx = np.concatenate(
+                    [self.source_tree.nodes[source_id].source_indices for source_id in near_ids],
+                )
+                result[target_idx] += velocity_from_segments(
+                    target_points,
+                    self.geometry.starts[source_idx],
+                    self.geometry.ends[source_idx],
+                    self.gamma[source_idx],
+                )
+                near_panel_target_count += target_idx.size * source_idx.size
+
+        return FMMResult(
+            velocity=result,
+            diagnostics=FMMDiagnostics(
+                order=self.order,
+                theta=self.theta,
+                source_node_count=len(self.source_tree.nodes),
+                target_node_count=len(target_tree.nodes),
+                m2l_pair_count=m2l_pair_count,
+                near_leaf_pair_count=near_leaf_pair_count,
+                near_panel_target_count=near_panel_target_count,
+            ),
+        )
+
+
 def evaluate_induced_velocity(
     points: np.ndarray,
     geometry: PanelGeometry,
@@ -135,76 +234,18 @@ def evaluate_induced_velocity(
     *,
     order: int = 10,
     theta: float = DEFAULT_THETA,
-    leaf_capacity: int = 16,
+    leaf_capacity: int = DEFAULT_LEAF_CAPACITY,
 ) -> FMMResult:
     """Evaluate vortex-panel-induced velocity with a panel-aware FMM.
 
     The returned velocity excludes freestream. Use the direct solution's
-    ``alpha_deg`` and ``freestream`` to add that separately. Source support
-    radii enclose the full panels, and the dual-tree pass sends a pair to M2L
-    only after it passes the support-radius MAC.
+    ``alpha_deg`` and ``freestream`` to add that separately.  For repeated
+    target batches, use :class:`PanelFMM` to reuse the source-side setup.
     """
-    points = np.asarray(points, dtype=float)
-    gamma = np.asarray(gamma, dtype=float)
-    if points.ndim == 1:
-        points = points[None, :]
-    if points.ndim != 2 or points.shape[1] != 2:
-        raise ValueError("points must have shape (n, 2)")
-    if not np.isfinite(points).all():
-        raise ValueError("points must be finite")
-    if gamma.shape != (geometry.n_panels,):
-        raise ValueError("gamma must have one value per panel")
-    if order < 1:
-        raise ValueError("order must be at least one")
-
-    source_tree = build_panel_tree(
-        geometry.starts,
-        geometry.ends,
-        leaf_capacity=leaf_capacity,
-    )
-    target_tree = build_tree(points, leaf_capacity=leaf_capacity)
-    source_moments = _upward_moments(source_tree, geometry, gamma, order)
-    locals_by_node, near_by_target_leaf, m2l_pair_count = _partition_dual_tree(
-        target_tree,
-        source_tree,
-        source_moments,
+    return PanelFMM(
+        geometry,
+        gamma,
         order=order,
         theta=theta,
-    )
-    _downward_locals(target_tree, locals_by_node)
-
-    result = np.zeros_like(points)
-    near_leaf_pair_count = 0
-    near_panel_target_count = 0
-    for target_leaf in target_tree.leaves:
-        target_idx = target_leaf.source_indices
-        target_points = points[target_idx]
-        result[target_idx] += evaluate_local(
-            locals_by_node[target_leaf.id],
-            _as_complex(target_leaf.center),
-            target_points,
-        )
-        near_ids = near_by_target_leaf[target_leaf.id]
-        near_leaf_pair_count += len(near_ids)
-        for source_id in near_ids:
-            source_idx = source_tree.nodes[source_id].source_indices
-            result[target_idx] += velocity_from_segments(
-                target_points,
-                geometry.starts[source_idx],
-                geometry.ends[source_idx],
-                gamma[source_idx],
-            )
-            near_panel_target_count += target_idx.size * source_idx.size
-
-    return FMMResult(
-        velocity=result,
-        diagnostics=FMMDiagnostics(
-            order=order,
-            theta=theta,
-            source_node_count=len(source_tree.nodes),
-            target_node_count=len(target_tree.nodes),
-            m2l_pair_count=m2l_pair_count,
-            near_leaf_pair_count=near_leaf_pair_count,
-            near_panel_target_count=near_panel_target_count,
-        ),
-    )
+        leaf_capacity=leaf_capacity,
+    ).evaluate(points)

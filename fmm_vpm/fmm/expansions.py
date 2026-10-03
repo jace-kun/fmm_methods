@@ -51,12 +51,16 @@ def panel_moments(
     if np.any(lengths == 0):
         raise ValueError("panels must have nonzero length")
     direction = b - a
-    moments = np.empty(order + 1, dtype=np.complex128)
-    for n in range(order + 1):
-        # integral_0^L (a + s/L * (b-a))^n ds
-        integral = lengths * (b ** (n + 1) - a ** (n + 1)) / ((n + 1) * direction)
-        moments[n] = np.dot(gamma, integral)
-    return moments
+    # Integral_0^L (a + s/L * (b-a))^n ds for every n, vectorised over
+    # panels and expansion order.  The (n+1) axis also avoids Python work
+    # in the source-side setup path used repeatedly for target batches.
+    powers = np.arange(1, order + 2)
+    integral = (
+        lengths[:, None]
+        * (b[:, None] ** powers - a[:, None] ** powers)
+        / (powers[None, :] * direction[:, None])
+    )
+    return np.asarray(gamma @ integral, dtype=np.complex128)
 
 
 def translate_multipole(
