@@ -1,3 +1,4 @@
+from fmm_vpm.fmm.evaluate import FMMDiagnostics, FMMResult, evaluate_induced_velocity
 from fmm_vpm.fmm.expansions import (
     evaluate_local,
     evaluate_multipole,
@@ -6,7 +7,6 @@ from fmm_vpm.fmm.expansions import (
     translate_local,
     translate_multipole,
 )
-from fmm_vpm.fmm.evaluate import FMMDiagnostics, FMMResult, evaluate_induced_velocity
 from fmm_vpm.fmm.interactions import (
     DEFAULT_ORDERS,
     DEFAULT_THETA,
@@ -30,8 +30,8 @@ __all__ = [
     "boxes_touch",
     "build_panel_tree",
     "build_tree",
-    "evaluate_local",
     "evaluate_induced_velocity",
+    "evaluate_local",
     "evaluate_multipole",
     "leaf_interaction_lists",
     "multipole_to_local",
