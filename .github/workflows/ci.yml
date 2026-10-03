@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Fortran compiler (pyfmmlib builds from source)
+        run: sudo apt-get update && sudo apt-get install -y gfortran
+
+      - name: Install locked environment
+        run: uv sync --all-groups --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format
+        run: uv run ruff format --check .
+
+      - name: Types
+        run: uv run pyright
+
+      # XFOIL is a local-only validation oracle; its outputs are pinned in
+      # tests/regression/golden and checked on the dev machine.
+      - name: Tests (without XFOIL)
+        run: uv run pytest -m "not xfoil"
