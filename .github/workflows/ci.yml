@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
 
 jobs:
@@ -34,3 +34,14 @@ jobs:
       # tests/regression/golden and checked on the dev machine.
       - name: Tests (without XFOIL)
         run: uv run pytest -m "not xfoil"
+
+      - name: Build distribution
+        run: uv build
+
+      - name: Verify installed wheel
+        run: |
+          uv venv --clear .wheel-test
+          uv pip install --python .wheel-test/bin/python dist/*.whl
+          cd /tmp
+          "$GITHUB_WORKSPACE/.wheel-test/bin/python" -c \
+            "import fmm_vpm; assert 'site-packages' in fmm_vpm.__file__, fmm_vpm.__file__"
